@@ -1,0 +1,53 @@
+version: '3.5'
+services:
+  nextcloud:
+    image: nextcloud:apache
+    container_name: nextcloud
+    restart: always
+    volumes:
+      - ../volumes/nextcloud/www:/var/www/html
+    environment:
+      - MYSQL_HOST=mysqldb
+      - REDIS_HOST=redis
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+      - MYSQL_PASSWORD_FILE=/run/secrets/mysql-passwd
+    depends_on:
+      - mysqldb
+      - redis
+    secrets:
+      - mysql-passwd
+      
+  mysqldb:
+    image: mariadb
+    container_name: mysqldb
+    restart: always
+    command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
+    volumes:
+      - ../volumes/nextcloud/db:/var/lib/mysql
+    environment:
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+      - MYSQL_ROOT_PASSWORD_FILE=/run/secrets/mysql-root-passwd
+      - MYSQL_PASSWORD_FILE=/run/secrets/mysql-passwd
+    secrets:
+      - mysql-passwd
+      - mysql-root-passwd
+
+  redis:
+    image: redis:alpine
+    container_name: redis
+    restart: always
+
+# db passwords
+secrets:
+  mysql-passwd:
+    file: mysql-passwd
+  mysql-root-passwd:
+    file: mysql-root-passwd
+
+# network to proxy
+networks:
+  default:
+    external:
+      name: server-main
